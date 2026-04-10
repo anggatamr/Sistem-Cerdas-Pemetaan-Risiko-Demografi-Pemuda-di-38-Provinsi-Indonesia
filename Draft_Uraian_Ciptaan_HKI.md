@@ -2,7 +2,12 @@
 
 **Jenis Ciptaan:** Program Komputer  
 **Judul Ciptaan:** Sistem Cerdas Pemetaan Risiko Demografi Pemuda di 38 Provinsi Indonesia  
-**Pencipta:** [Nama Anda / Anggota Tim]  
+**Pencipta:** 
+1. Adi Gunawan
+2. Angga Tamara
+3. Era Evalin Tampubolon
+4. Randy Obie
+5. Rizky Rafiza Panjaitan
 
 ---
 
