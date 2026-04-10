@@ -43,8 +43,7 @@ Aplikasi ini menggunakan model *Machine Learning* **K-Means Clustering** untuk m
 Variabel penentu klaster meliputi tingginya pengangguran usia muda (**NEET**) dan rendahnya pencapaian pendidikan/ketenagakerjaan (**APK**, **RLS**, dan **TPAK**).
 """)
 
-# Load Data
-@st.cache_data
+# Load Data (tanpa cache agar data klasterisasi 38 provinsi yang diperbarui bisa langsung tampil)
 def load_data():
     try:
         # Load clustered data from output step 1

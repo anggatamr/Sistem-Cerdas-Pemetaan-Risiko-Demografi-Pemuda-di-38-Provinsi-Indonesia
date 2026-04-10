@@ -14,34 +14,50 @@ def process_and_cluster():
     # Untuk template script ini, kita buat mock-up muat dari satu CSV jika sudah disatukan otomatis:
     
     try:
-        # Load the combined data if you made it into one, OR change these lines to read multiple CSVs
-        # Example for multiple files:
-        df_tpak = pd.read_csv('TPAK_clean.csv', sep=';') # sesuaikan separator
-        df_neet = pd.read_csv('NEET_clean.csv', sep=';')
-        df_rls = pd.read_csv('RLS_clean.csv', sep=';')
-        df_apk_sma = pd.read_csv('APK_SMA_clean.csv', sep=';')
-        df_apk_pt = pd.read_csv('APK_PT_clean.csv', sep=';')
-        
-        # Merge all dataframes based on 'Provinsi'
+        # 1. TPAK
+        df_tpak = pd.read_csv('Persentase Angkatan Kerja Terhadap Penduduk Usia Kerja (TPAK) menurut Provinsi, 2025.csv', sep=';', skiprows=4, header=None, names=['Provinsi', 'TPAK_Februari', 'TPAK_Agustus'])
+        df_tpak = df_tpak[['Provinsi', 'TPAK_Agustus']]
+        df_tpak['Provinsi'] = df_tpak['Provinsi'].str.strip().str.upper()
+
+        # 2. NEET
+        df_neet = pd.read_csv('Percentage of Youth (Aged 15-24 Years) Not in Education, Employment or Training (NEET), 2025.csv', sep=';', skiprows=3, header=None, names=['Provinsi', 'NEET'])
+        df_neet['Provinsi'] = df_neet['Provinsi'].str.strip().str.upper()
+
+        # 3. RLS
+        df_rls_raw = pd.read_csv('Rata-rata Lama Sekolah (RLS) menurut Jenis Kelamin, 2025.csv', sep=',', skiprows=4, header=None, names=['Provinsi_Kab', 'Laki', 'Perempuan'])
+        df_rls = df_rls_raw[df_rls_raw['Provinsi_Kab'].str.isupper() & (df_rls_raw['Provinsi_Kab'] != 'INDONESIA')].copy()
+        df_rls['Laki'] = pd.to_numeric(df_rls['Laki'], errors='coerce')
+        df_rls['Perempuan'] = pd.to_numeric(df_rls['Perempuan'], errors='coerce')
+        df_rls['RLS_Total'] = (df_rls['Laki'] + df_rls['Perempuan']) / 2
+        df_rls = df_rls[['Provinsi_Kab', 'RLS_Total']].rename(columns={'Provinsi_Kab': 'Provinsi'})
+        df_rls['Provinsi'] = df_rls['Provinsi'].str.strip().str.upper()
+
+        # 4. APK SMA
+        df_apk_sma = pd.read_csv('Angka Partisipasi Kasar (APK) Menurut Provinsi dan Jenjang Pendidikan, 2025.csv', sep=';', skiprows=4, header=None, names=['Provinsi', 'SD', 'SMP', 'APK_SMA'])
+        df_apk_sma = df_apk_sma[['Provinsi', 'APK_SMA']]
+        df_apk_sma['Provinsi'] = df_apk_sma['Provinsi'].str.strip().str.upper()
+
+        # 5. APK PT
+        df_apk_pt = pd.read_csv('Angka Partisipasi Kasar (APK) Perguruan Tinggi (PT) Menurut Provinsi, 2025.csv', sep=';', skiprows=3, header=None, names=['Provinsi', 'APK_PT'])
+        df_apk_pt['Provinsi'] = df_apk_pt['Provinsi'].str.strip().str.upper()
+
+        # Merge all
         df = df_tpak.merge(df_neet, on='Provinsi', how='inner')\
                     .merge(df_rls, on='Provinsi', how='inner')\
                     .merge(df_apk_sma, on='Provinsi', how='inner')\
                     .merge(df_apk_pt, on='Provinsi', how='inner')
         
-        print("Data berhasil dimuat dan digabungkan.")
+        # Mengecualikan record 'INDONESIA'
+        df = df[df['Provinsi'] != 'INDONESIA']
+        df['Provinsi'] = df['Provinsi'].str.title()
+        
+        # Mengubah beberapa format khusus (misal "Dki Jakarta", "Di Yogyakarta")
+        df['Provinsi'] = df['Provinsi'].replace({'Dki Jakarta': 'DKI Jakarta', 'Di Yogyakarta': 'DI Yogyakarta', 'D.I. Yogyakarta': 'DI Yogyakarta'})
+
+        print(f"Data 38 Provinsi berhasil dimuat dan digabungkan. Jumlah provinsi yang sinkron: {len(df)}")
     except Exception as e:
-        print(f"Data belum tersedia dalam format yang dirapikan. Error: {e}")
-        print(">> Membuat dummy data agar pipeline tetap berjalan untuk testing...")
-        # Dummy data untuk keperluan testing jika file CSV belum disesuaikan
-        data = {
-            'Provinsi': ['Aceh', 'Sumatera Utara', 'Jakarta', 'Papua', 'Jawa Timur', 'Nusa Tenggara Timur'],
-            'TPAK_Agustus': [65.2, 68.1, 72.5, 60.1, 70.2, 62.5],
-            'NEET': [24.5, 17.4, 12.8, 26.3, 16.7, 22.1],
-            'RLS_Total': [9.2, 9.5, 11.2, 7.1, 9.8, 8.0],
-            'APK_SMA': [85.1, 86.2, 98.1, 65.2, 88.5, 70.1],
-            'APK_PT': [30.1, 32.5, 55.4, 15.2, 35.1, 18.5]
-        }
-        df = pd.DataFrame(data)
+        print(f"Gagal memuat file CSV asli: {e}")
+        return # Mengakhiri operasi jika data gagal digabungkan
 
     # Pastikan tidak ada data kosong
     df = df.dropna()
